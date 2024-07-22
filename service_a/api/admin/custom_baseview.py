@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
 import io
 from typing import Optional, Union, NamedTuple, Type, Any, List, Tuple
+import logging
 
 import httpx
 from urllib.parse import urlencode
@@ -334,7 +335,7 @@ class APIBaseView(BaseView, ABC):
                 token=token,
             )
             if not (r and r.status_code == status.HTTP_204_NO_CONTENT):
-                logger.exception(r.json())
+                logging.exception(r.json())
         request.path_params["identity"] = self.identity
         return Response(
             str(request.url_for("admin:list", identity=self.identity))
@@ -353,7 +354,7 @@ class APIBaseView(BaseView, ABC):
         try:
             token = request.session.get("token")
         except KeyError as ex:
-            logger.exception(ex)
+            logging.exception(ex)  # noqa: TRY401
             return RedirectResponse(self.urls.admin_login_path)
         return token
 
@@ -390,7 +391,7 @@ class APIBaseView(BaseView, ABC):
                 )
                 r.raise_for_status()
             except httpx.HTTPError as ex:
-                logger.exception(ex)
+                logging.exception(ex)  # noqa: TRY401
                 return None
             return r.json()
 
@@ -435,10 +436,10 @@ class APIBaseView(BaseView, ABC):
                 )
                 r.raise_for_status()
             except httpx.RequestError as ex:
-                logger.exception(ex)
+                logging.exception(ex)  # noqa: TRY401
                 return None
             except httpx.HTTPStatusError as ex:
-                logger.exception(ex)
+                logging.exception(ex)  # noqa: TRY401
             return r
 
     async def _filter_data_by_column_list(
@@ -500,7 +501,7 @@ class APIBaseView(BaseView, ABC):
                     else:
                         params["order_by"] = "-" + sort_by_filter
             except AttributeError as ex:
-                logger.exception(ex.args)
+                logging.exception(ex.args)
         else:
             params["order_by"] = "id"
         token = await self._get_token(request)
