@@ -1,0 +1,6 @@
+*
+!service-a
+!service-b
+!docker/nginx/.env.*
+!poetry.lock
+!pyproject.toml
