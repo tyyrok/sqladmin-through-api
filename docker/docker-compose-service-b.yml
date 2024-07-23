@@ -12,8 +12,8 @@ services:
     restart: unless-stopped
     command: >
       sh -c "sleep 2 &&
-             alembic -c src/alembic.ini upgrade head &&
-             alembic -c src/alembic.ini stamp head &&
+             alembic -c service_b/src/alembic.ini upgrade head &&
+             alembic -c service_b/src/alembic.ini stamp head &&
              python service_b/src/main.py"
     networks:
       - service-b

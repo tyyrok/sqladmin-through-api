@@ -75,4 +75,4 @@ class CRUDBook:
         return obj
 
 
-crud_book = CRUDBook(Book)
+crud_book = CRUDBook()

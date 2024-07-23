@@ -3,9 +3,9 @@
 export ENVIRONMENT=local
 export PYTHONDONTWRITEBYTECODE=1
 template_env_a=.env.template.a
-main_env_a=service_a/.env
+main_env_a=service_a/src/.env
 template_env_b=.env.template.b
-main_env_b=service_b/.env
+main_env_b=service_b/src/.env
 
 if [[ ! -e ${main_env_a} ]]
 then
@@ -18,5 +18,6 @@ fi
 
 docker network create gateway-network
 docker compose -f docker/docker-compose-service-a.yml -f docker/docker-compose-service-b.yml up --build
-docker compose -f docker/docker-compose-service-a.yml -f docker/docker-compose-service-b.yml
+docker compose -f docker/docker-compose-service-a.yml -f docker/docker-compose-service-b.yml down
+docker network rm gateway-network
 exit
