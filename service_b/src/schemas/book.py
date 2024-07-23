@@ -18,3 +18,11 @@ class BookUpdateDB(BookBase):
 
 class BookResponse(BookBase):
     id: int
+
+
+class BookPaginatedResponse(BaseModel):
+    objects: list[BookResponse]
+    total_count: int
+
+    class Config:
+        arbitrary_types_allowed = True

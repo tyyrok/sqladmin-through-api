@@ -7,14 +7,14 @@ from api.admin.custom_baseview import ApiUrls
 
 
 urls = ApiUrls(
-    base_url="http://service-b-core:8001",
-    list_path=("v1/admin/question/list/"),
-    detail_path=("v1/admin/question/{question_id}/"),
-    create_path=("v1/admin/question/"),
-    update_path=("v1/admin/question/{question_id}/"),
-    delete_path=("v1/admin/question/{question_id}/"),
-    openapi_path="openapi.json/",
-    admin_login_path="admin/login",
+    base_url="http://service-b-core:8000",
+    list_path=("/service-b/v1/book/list/"),
+    detail_path=("/service-b/v1/book/{book_id}/"),
+    create_path=("/service-b/v1/book/"),
+    update_path=("/service-b/v1/book/{book_id}/"),
+    delete_path=("/service-b/v1/book/{book_id}/"),
+    openapi_path="/service-b/openapi.json/",
+    admin_login_path="admin",
 )
 
 
@@ -23,47 +23,24 @@ class BookAdmin(APIBaseView):
     list_template = "custom_list.html"
     details_template = "custom_details.html"
     page_size = 50
-    identity = "question"
+    identity = "book"
     urls = urls
-    name = "Question"
+    name = "Book"
     icon = "fa"
     column_list = [
         "id",
         "title",
-        "difficulty",
-        "game_id",
-        "round",
-        "image",
-        "category_id",
-        "created_at",
-        "updated_at",
     ]
     column_labels = {
         "id": "id",
-        "title": "название",
-        "difficulty": "сложность",
-        "game_id": "id игры",
-        "round": "раунд",
-        "image": "изображение",
-        "category_id": "категория",
-        "created_at": "дата создания",
-        "updated_at": "дата обновления",
+        "title": "Title",
     }
     column_detail_list = []
     column_detail_labels = {}
-    column_sortable_list = [
-        "id",
-        "title",
-        "difficulty",
-        "game_id",
-        "round",
-        "image",
-        "category_id",
-        "created_at",
-        "updated_at",
-    ]
+    column_sortable_list = ["id", "title"]
+    use_token = False
 
-    @expose("/question/list", methods=["GET"], identity="question")
+    @expose("/book/list", methods=["GET"], identity="book")
     async def list(self, request: Request) -> HTMLResponse:
         context = {
             "page_size": self.page_size,
@@ -72,19 +49,19 @@ class BookAdmin(APIBaseView):
             "column_list": self.column_list,
             "column_labels": self.column_labels,
             "column_sortable_list": self.column_sortable_list,
-            "get_url_for_details": self._url_for_details,
-            "get_url_for_create": self._url_for_create,
-            "get_url_for_delete": self._url_for_delete,
-            "get_url_for_update": self._url_for_update,
+            "get_url_for_details": self.url_for_details,
+            "get_url_for_create": self.url_for_create,
+            "get_url_for_delete": self.url_for_delete,
+            "get_url_for_update": self.url_for_update,
             "request": request,
         }
-        pagination = await self._get_paginated_data(request)
+        pagination = await self.get_paginated_data(request)
         pagination.add_pagination_urls(request.url)
         if pagination.rows is None:
             context["service_unavailable"] = True
         else:
             context["service_unavailable"] = False
-            pagination.rows = await self._filter_data_by_column_list(
+            pagination.rows = await self.filter_data_by_column_list(
                 pagination.rows
             )
         context["pagination"] = pagination

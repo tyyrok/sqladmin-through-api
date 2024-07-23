@@ -2,20 +2,32 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi_filter import FilterDepends
 
 from api.dependencies.database import get_async_db
 from crud.book import crud_book
-from schemas.book import BookCreateDB, BookUpdateDB, BookResponse
+from schemas.book import (
+    BookCreateDB,
+    BookUpdateDB,
+    BookResponse,
+    BookPaginatedResponse,
+)
+from api.filters.book import BookFilter
 
 
 router = APIRouter()
 
 
-@router.get("/list", response_model=list[BookResponse])
+@router.get("/list/", response_model=BookPaginatedResponse)
 async def read_books(
-    db: AsyncSession = Depends(get_async_db), skip: int = 0, limit: int = 20
+    db: AsyncSession = Depends(get_async_db),
+    skip: int = 0,
+    limit: int = 20,
+    filters: BookFilter = FilterDepends(BookFilter),
 ):
-    return await crud_book.get_multi(db=db, skip=skip, limit=limit)
+    return await crud_book.get_multi_with_total(
+        db=db, filters=filters, skip=skip, limit=limit
+    )
 
 
 @router.get(

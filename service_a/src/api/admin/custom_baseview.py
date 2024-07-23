@@ -119,6 +119,8 @@ class APIBaseView(BaseView, ABC):
     list_template = "custom_list.html"
     details_template = "custom_details.html"
 
+    use_token = True
+
     @abstractmethod
     @expose("/identity/list/", methods=["GET"], identity="identity")
     async def list(self, request: Request) -> HTMLResponse:
@@ -140,19 +142,19 @@ class APIBaseView(BaseView, ABC):
             "column_list": self.column_list,
             "column_labels": self.column_labels,
             "column_sortable_list": self.column_sortable_list,
-            "get_url_for_details": self._url_for_details,
-            "get_url_for_create": self._url_for_create,
-            "get_url_for_delete": self._url_for_delete,
-            "get_url_for_update": self._url_for_update,
+            "get_url_for_details": self.url_for_details,
+            "get_url_for_create": self.url_for_create,
+            "get_url_for_delete": self.url_for_delete,
+            "get_url_for_update": self.url_for_update,
             "request": request,
         }
-        pagination = await self._get_paginated_data(request)
+        pagination = await self.get_paginated_data(request)
         pagination.add_pagination_urls(request.url)
         if pagination.rows is None:
             context["service_unavailable"] = True
         else:
             context["service_unavailable"] = False
-            pagination.rows = await self._filter_data_by_column_list(
+            pagination.rows = await self.filter_data_by_column_list(
                 pagination.rows
             )
         context["pagination"] = pagination
@@ -167,7 +169,7 @@ class APIBaseView(BaseView, ABC):
             return RedirectResponse(
                 str(request.url_for("admin:list", identity=self.identity))
             )
-        data = await self._get_object_for_details(
+        data = await self.get_object_for_details(
             request=request, params={f"{self.identity}_id": obj_id}
         )
         context = {}
@@ -175,15 +177,15 @@ class APIBaseView(BaseView, ABC):
             context["service_unavailable"] = True
         else:
             context["service_unavailable"] = False
-            data = await self._filter_data_by_column_list(data)
+            data = await self.filter_data_by_column_list(data)
         context.update(
             {
                 "record": data,
                 "name_plural": self.name,
                 "column_detail_list": self.column_detail_list,
                 "column_detail_labels": self.column_detail_labels,
-                "get_url_for_delete": self._url_for_delete,
-                "get_url_for_update": self._url_for_update,
+                "get_url_for_delete": self.url_for_delete,
+                "get_url_for_update": self.url_for_update,
             }
         )
         request.path_params["identity"] = self.identity
@@ -203,8 +205,8 @@ class APIBaseView(BaseView, ABC):
                 target_path=self.urls.create_path,
                 method=RequestMethod.post,
             )
-            form = await self._scaffold_form(AdminFormType.create)
-            form_data = await self._handle_form_data(request)
+            form = await self.scaffold_form(AdminFormType.create)
+            form_data = await self.handle_form_data(request)
             form = form(form_data)
             context = {
                 "form": form,
@@ -222,8 +224,8 @@ class APIBaseView(BaseView, ABC):
                     context=context,
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
-            token = await self._get_token(request)
-            result = await self._send_request_to_api(
+            token = await self.get_token(request)
+            result = await self.send_request_to_api(
                 url=(self.urls.base_url + self.urls.create_path),
                 method=RequestMethod.post,
                 token=token,
@@ -232,7 +234,7 @@ class APIBaseView(BaseView, ABC):
             if result and result.status_code == status.HTTP_201_CREATED:
                 pk = result.json().get("id")
                 if pk:
-                    url = self._url_for_details(
+                    url = self.url_for_details(
                         request=request, pk=pk, identity=identity
                     )
                     return RedirectResponse(
@@ -265,8 +267,8 @@ class APIBaseView(BaseView, ABC):
                 target_path=self.urls.update_path,
                 method=RequestMethod.patch,
             )
-            form = await self._scaffold_form(AdminFormType.update)
-            data = await self._get_object_for_details(
+            form = await self.scaffold_form(AdminFormType.update)
+            data = await self.get_object_for_details(
                 request=request, params={f"{identity}_id": pk}
             )
             context = {
@@ -278,7 +280,7 @@ class APIBaseView(BaseView, ABC):
                 return await self.templates.TemplateResponse(
                     request, self.create_template, context=context
                 )
-            form_data = await self._handle_form_data(request)
+            form_data = await self.handle_form_data(request)
             form = form(form_data)
             if not form.validate():
                 return await self.templates.TemplateResponse(
@@ -287,12 +289,12 @@ class APIBaseView(BaseView, ABC):
                     context=context,
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
-            token = await self._get_token(request)
+            token = await self.get_token(request)
             url = await self.insert_params_to_path(
                 (self.urls.base_url + self.urls.update_path),
                 {f"{identity}_id": pk},
             )
-            result = await self._send_request_to_api(
+            result = await self.send_request_to_api(
                 url=url,
                 method=RequestMethod.patch,
                 token=token,
@@ -301,7 +303,7 @@ class APIBaseView(BaseView, ABC):
             if result and result.status_code == status.HTTP_200_OK:
                 pk = result.json().get("id")
                 if pk:
-                    url = self._url_for_details(
+                    url = self.url_for_details(
                         request=request, pk=pk, identity=identity
                     )
                     return RedirectResponse(
@@ -323,13 +325,13 @@ class APIBaseView(BaseView, ABC):
             )
 
     async def delete(self, request: Request, pks: List[int]) -> Response:
-        token = await self._get_token(request)
+        token = await self.get_token(request)
         for pk in pks:
             url = await self.insert_params_to_path(
                 (self.urls.base_url + self.urls.delete_path),
                 {f"{self.identity}_id": pk},
             )
-            r = await self._send_request_to_api(
+            r = await self.send_request_to_api(
                 url=f"{url}",
                 method=RequestMethod.delete,
                 token=token,
@@ -341,7 +343,7 @@ class APIBaseView(BaseView, ABC):
             str(request.url_for("admin:list", identity=self.identity))
         )
 
-    async def _get_token(self, request: Request) -> str:
+    async def get_token(self, request: Request) -> Union[str, None]:
         """Method to get token from session in case third-party API is private.
         Override this method for your circumstances
 
@@ -356,9 +358,14 @@ class APIBaseView(BaseView, ABC):
         except KeyError as ex:
             logging.exception(ex)  # noqa: TRY401
             return RedirectResponse(self.urls.admin_login_path)
+        except AssertionError as ex:
+            if self.use_token:
+                logging.exception(ex)  # noqa: TRY401
+                return RedirectResponse(self.urls.admin_login_path)
+            return None
         return token
 
-    async def _get_data_from_api(
+    async def get_data_from_api(
         self,
         url: str,
         method: RequestMethod,
@@ -395,7 +402,7 @@ class APIBaseView(BaseView, ABC):
                 return None
             return r.json()
 
-    async def _send_request_to_api(
+    async def send_request_to_api(
         self,
         url: str,
         method: RequestMethod,
@@ -442,7 +449,7 @@ class APIBaseView(BaseView, ABC):
                 logging.exception(ex)  # noqa: TRY401
             return r
 
-    async def _filter_data_by_column_list(
+    async def filter_data_by_column_list(
         self, data: Union[dict, list]
     ) -> Union[dict, list]:
         """Method to filter response by column_list (self.column_list)
@@ -474,7 +481,7 @@ class APIBaseView(BaseView, ABC):
                 self.column_detail_list = data.keys()
         return data
 
-    async def _get_paginated_data(self, request: Request) -> Pagination:
+    async def get_paginated_data(self, request: Request) -> Pagination:
         """Overriden method from SQLadmin to deal with api
         request instead of sqlachemy queries
 
@@ -504,19 +511,19 @@ class APIBaseView(BaseView, ABC):
                 logging.exception(ex.args)
         else:
             params["order_by"] = "id"
-        token = await self._get_token(request)
+        token = await self.get_token(request)
         params.update({"skip": (page - 1) * page_size, "limit": page_size})
-        data = await self._get_data_from_api(
+        data = await self.get_data_from_api(
             url=(self.urls.base_url + self.urls.list_path),
             method=RequestMethod.get,
             token=token,
             params=params,
         )
-        return await self._make_pagination(
+        return await self.make_pagination(
             page=page, page_size=page_size, data=data
         )
 
-    async def _make_pagination(
+    async def make_pagination(
         self, page: int, page_size: int, data: Union[dict, list]
     ) -> Pagination:
         """Override this method to process response data from third-party API.
@@ -542,7 +549,7 @@ class APIBaseView(BaseView, ABC):
             count=data["total_count"] if data else 0,
         )
 
-    async def _get_object_for_details(
+    async def get_object_for_details(
         self, request: Request, params: dict
     ) -> dict:
         """Method to get object info from third-party API
@@ -556,17 +563,17 @@ class APIBaseView(BaseView, ABC):
         Returns:
             dict: object from third-party response
         """
-        token = await self._get_token(request)
+        token = await self.get_token(request)
         url = await self.insert_params_to_path(
             (self.urls.base_url + self.urls.detail_path), params
         )
-        return await self._get_data_from_api(
+        return await self.get_data_from_api(
             url=url,
             method=RequestMethod.get,
             token=token,
         )
 
-    def _url_for_details(
+    def url_for_details(
         self, request: Request, pk: int, identity: str
     ) -> Union[str, URL]:
         spacename = "admin"
@@ -576,7 +583,7 @@ class APIBaseView(BaseView, ABC):
             pk=pk,
         )
 
-    def _url_for_create(
+    def url_for_create(
         self, request: Request, identity: str
     ) -> Union[str, URL]:
         spacename = "admin"
@@ -585,13 +592,13 @@ class APIBaseView(BaseView, ABC):
             identity=identity,
         )
 
-    def _url_for_update(
+    def url_for_update(
         self, request: Request, pk: int, identity: str
     ) -> Union[str, URL]:
         spacename = "admin"
         return request.url_for(f"{spacename}:edit", identity=identity, pk=pk)
 
-    def _url_for_delete(
+    def url_for_delete(
         self, request: Request, identity: str, pks: List[int]
     ) -> Union[str, URL]:
         spacename = "admin"
@@ -602,7 +609,7 @@ class APIBaseView(BaseView, ABC):
         )
         return str(url) + "?" + query_params
 
-    async def _scaffold_form(self, form_type: AdminFormType) -> Type[Form]:
+    async def scaffold_form(self, form_type: AdminFormType) -> Type[Form]:
         """Generate wtforms.Form by parsing openapi schema. Method implemented
         very limited list for Fields, so you if is needed more you can override
         create_form method or set self.create_form attr of class.
@@ -632,7 +639,7 @@ class APIBaseView(BaseView, ABC):
             )
         return form
 
-    async def _handle_form_data(
+    async def handle_form_data(
         self, request: Request, obj: Any = None
     ) -> FormData:
         """

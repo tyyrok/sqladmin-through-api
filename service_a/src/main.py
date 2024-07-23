@@ -23,7 +23,7 @@ admin = CustomAdmin(
     async_engine,
     title="Квиз Админ Панель",
     base_url=f"/{BACKEND_ENTRYPOINT}/admin",
-    templates_dir="service-a/templates/sqladmin",
+    templates_dir="service_a/src/templates/sqladmin",
 )
 load_admin_site(admin)
 

@@ -16,8 +16,6 @@ then
     cp "${template_env_b}"  "${main_env_b}"
 fi
 
-docker network create gateway-network
-docker compose -f docker/docker-compose-service-a.yml -f docker/docker-compose-service-b.yml up --build
-docker compose -f docker/docker-compose-service-a.yml -f docker/docker-compose-service-b.yml down
-docker network rm gateway-network
+docker compose -f docker/docker-compose-service-a.yml up --build
+docker compose -f docker/docker-compose-service-a.yml down
 exit

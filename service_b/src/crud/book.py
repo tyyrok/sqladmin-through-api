@@ -1,11 +1,12 @@
 from typing import Optional, Sequence, Union
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import insert, select, update
+from sqlalchemy import insert, select, update, func
 from pydantic import BaseModel
 
 from models import Book
 from schemas.book import BookCreateDB, BookUpdateDB
+from api.filters.book import BookFilter
 
 
 class CRUDBook:
@@ -50,6 +51,27 @@ class CRUDBook:
         statement = select(Book).offset(skip).limit(limit)
         result = await db.execute(statement)
         return result.scalars().all()
+
+    async def get_multi_with_total(
+        self,
+        db: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
+        filters: Optional[BookFilter] = None,
+    ) -> Sequence[Book]:
+        statement = (
+            select(Book, func.count().over().label("total_count"))
+            .offset(skip)
+            .limit(limit)
+        )
+        if filters:
+            statement = filters.sort(statement)
+        result = await db.execute(statement)
+        rows = result.mappings().all()
+        return {
+            "total_count": rows[0]["total_count"] if rows else 0,
+            "objects": [r["Book"] for r in rows],
+        }
 
     async def update(
         self,
