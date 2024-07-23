@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block content %}
+{{ super() }}
+<div class="col-12">
+  <div class="card">
+    <div class="card-header">
+        <h3 class="card-title">{{ name_plural }}{% if "id" in record %} - {{ record["id"] }}{% endif %}</h3>
+    </div>
+
+    <div class="card-body border-bottom py-3">
+      <div class="table-responsive">
+        {% if service_unavailable %}
+          <p>Service is unavailable!</p>
+        {% else %}
+        <table class="table card-table table-vcenter text-nowrap table-hover table-bordered">
+          <thead>
+            <tr>
+              <th class="w-1">Column</th>
+              <th class="w-1">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for column in column_detail_list %}
+              <tr>
+                  <td>
+                    {{ column_detail_labels.get(column, column) }}
+                  </td>
+                  <td>
+                    {{ record[column] }}
+                  </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card-footer container-sm">
+      <div class="row justify-content-md-left">
+        <div class="col-md-auto">
+          <span class="btn" onclick="history.back();">Назад</span>
+        </div>
+        <div class="col-md-auto">
+          <a href="{{ get_url_for_update(request, record["id"], request.path_params["identity"]) }}" class="btn btn-primary">
+            Править
+          </a>
+        </div>
+        <div class="col-md-auto">
+          <a href="#" data-name="{{ request.path_params["identity"] }}" data-pk="{{ record["id"] }}" data-url="{{ get_url_for_delete(request, request.path_params["identity"], [record["id"]]) }}" data-bs-toggle="modal" data-bs-target="#modal-delete" class="btn btn-danger">
+            Удалить
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% include 'modals/delete.html' %}
+</div>
+{% endblock %}

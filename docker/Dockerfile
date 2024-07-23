@@ -39,9 +39,8 @@ WORKDIR $APP_HOME
 
 # install dependencies
 RUN apk update && apk add libpq libffi-dev build-base libffi
-COPY --from=builder /app/wheels /wheels
 COPY --from=builder /app/requirements.txt .
-RUN pip install --no-cache /wheels/*
+RUN pip install -r requirements.txt
 
 # copy project
 

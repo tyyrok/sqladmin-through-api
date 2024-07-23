@@ -126,9 +126,9 @@ max-args = 10
     "ANN201",
     "RET504"
 ]
-"service_a/api/v1/endpoints/*" = [
+"*/src/api/v1/endpoints/*" = [
     "ANN201"
 ]
-"service_a/api/admin/*" = [
+"*/src/api/admin/*" = [
     "RUF012"    # mutable-class-default
 ]

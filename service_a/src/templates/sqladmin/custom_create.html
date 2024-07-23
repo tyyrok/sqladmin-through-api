@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block content %}
+{{ super() }}
+<div class="col-12">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">New {{ name_plural }}</h3>
+        </div>
+        <div class="card-body border-bottom py-3">
+            {% if service_unavailable %}
+                <p>Service is unavalaible!</p>
+            {% else %}
+                <form action="{{ request.url }}" id="form" method="post">
+                    <fieldset class="form-fieldset">
+                        {% for field in form %}
+                        <div class="mb-3 form-group row">
+                            {{ field.label(class_="form-label col-sm-2 col-form-label") }}
+                            <div class="col-sm-10">
+                                {% if field.errors %}
+                                {{ field(class_="form-control is-invalid") }}
+                                {% else %}
+                                {% if field.type == "QuerySelectField" %}
+                                {{ field(class_="form-control form-select") }}
+                                {% else %}
+                                {{ field() }}
+                                {% endif %}
+                                {% endif %}
+                                {% for error in field.errors %}
+                                {% if error == "This field is required." %}
+                                <div class="invalid-feedback">Обязательное поле.</div>
+                                {% else %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </fieldset>
+                    <div class="row">
+                        {% if error %}
+                        <div class="alert alert-danger" role="alert">{{ error }}</div>
+                        {% endif %}
+                        <div class="col-md-2">
+
+                        <span class="btn" onclick="history.back();">Назад</span>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="btn-group flex-wrap" data-toggle="buttons">
+                                <input type="submit" name="save" value="Сохранить" class="btn">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

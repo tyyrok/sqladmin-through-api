@@ -1,6 +1,4 @@
 *
-!service-a
-!service-b
-!docker/nginx/.env.*
-!poetry.lock
-!pyproject.toml
+!service_a
+!service_b
+!requirements.txt

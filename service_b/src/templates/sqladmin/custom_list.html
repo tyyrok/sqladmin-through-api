@@ -1,0 +1,136 @@
+{% extends "layout.html" %}
+{% block content %}
+{{ super() }}
+<div class="col-12">
+  <div class="card">
+    <div class="card-header">
+        <h3 class="card-title">{{ name_plural }}</h3>
+        <div class="ms-auto">
+          <div class="ms-3 d-inline-block">
+            <a href="{{ get_url_for_create(request, request.path_params["identity"]) }}" class="btn btn-primary">
+              + Создать
+            </a>
+          </div>
+        </div>
+    </div>
+    <div class="card-body border-bottom py-3">
+      {% if service_unavailable %}
+        <p>Service is unavailable!</p>
+      {% else %}
+        <div class="d-flex justify-content-between">
+          <div class="dropdown col-4">
+            <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Actions
+            </button>
+            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+              <a class="dropdown-item" id="action-delete" href="#" data-url="{{ request.url_for('admin:delete', identity=request.path_params["identity"]) }}" data-bs-target="#modal-delete" data-bs-toggle="modal">Delete selected items</a>
+              <a class="dropdown-item" id="action-export" href="#" data-url="">Export selected items</a>
+            </div>
+          </div>
+          <div class="col-md-4 text-muted">
+          </div>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table card-table table-vcenter text-nowrap">
+          <thead>
+            <tr>
+              <th class="w-1"><input class="form-check-input m-0 align-middle" type="checkbox" aria-label="Select all" id="select-all"></th>
+              <th class="w-1"></th>
+              {% for name in column_list %}
+              {% set name_label = column_labels.get(name, name) %}
+              <th>
+                {% if name in column_sortable_list %}
+                  {% if request.query_params and request.query_params.get("sortBy", None) == name|string and request.query_params.get("sort", None) == "asc" %}
+                  <a href="{{ request.url.include_query_params(sort='desc') }}"><i class="fa-solid fa-arrow-down"></i> {{ name_label }}</a>
+                  {% elif request.query_params and request.query_params.get("sortBy", None) == name|string and request.query_params.get("sort", None) == "desc" %}
+                  <a href="{{ request.url.include_query_params(sort='asc') }}"><i class="fa-solid fa-arrow-up"></i> {{ name_label }}</a>
+                  {% else %}
+                  <a href="{{ request.url.include_query_params(sortBy=name, sort='asc') }}">
+                    {{ name_label }}</a>
+                  {% endif %}
+                {% else %}
+                {{ name_label }}
+                {% endif %}
+              </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in pagination.rows %}
+              <tr>
+                <td>
+                  <input type="hidden" value="{{ row["id"] }}">
+                  <input class="form-check-input m-0 align-middle select-box" type="checkbox" aria-label="Select item">
+                </td>
+                <td class="text-end">
+                  <a href="{{ get_url_for_details(request, row["id"], request.path_params["identity"]) }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Посмотреть">
+                    <span class="me-1"><i class="fa-solid fa-eye"></i></span>
+                  </a>
+                  <a href="{{ get_url_for_update(request, row["id"], request.path_params["identity"]) }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Править">
+                    <span class="me-1"><i class="fa-solid fa-pen-to-square"></i></span>
+                  </a>
+                  <a href="#" data-name="{{ request.path_params["identity"] }}" data-pk="{{ row["id"] }}" data-url="{{ get_url_for_delete(request, request.path_params["identity"], [row["id"]]) }}" data-bs-toggle="modal" data-bs-target="#modal-delete" title="Удалить">
+                    <span class="me-1"><i class="fa-solid fa-trash"></i></span>
+                  </a>
+                </td>
+                {% for name in column_list %}
+                  <td>
+                    {{ row[name] }}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+    </div>
+    <div class="card-footer d-flex justify-content-between align-items-center gap-2">
+      {% if pagination.count != 0 %}
+        <p class="m-0 text-muted">Showing <span>{{ min(pagination.page * pagination.page_size, pagination.count) }}</span> of <span>{{ pagination.count }}</span> items</p>
+      {% else %}
+        <p class="m-0 text-muted">Showing <span>0</span> items</p>
+      {% endif %}
+      <ul class="pagination m-0 ms-auto">
+        <li class="page-item {% if not pagination.has_previous %}disabled{% endif %}">
+          {% if pagination.has_previous %}
+          <a class="page-link" href="{{ pagination.previous_page.url }}">
+          {% else %}
+          <a class="page-link" href="#">
+          {% endif %}
+          <i class="fa-solid fa-chevron-left"></i>
+          prev
+          </a>
+        </li>
+        {% for page_control in pagination.page_controls %}
+        <li class="page-item {% if page_control.number == pagination.page %}active{% endif %}"><a class="page-link" href="{{ page_control.url }}">{{ page_control.number }}</a></li>
+        {% endfor %}
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+          {% if pagination.has_next %}
+          <a class="page-link" href="{{ pagination.next_page.url }}">
+          {% else %}
+          <a class="page-link" href="#">
+          {% endif %}
+          next
+          <i class="fa-solid fa-chevron-right"></i>
+          </a>
+        </li>
+      </ul>
+      <div class="dropdown text-muted">
+        Show
+        <a href="#" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          {{ request.query_params.get("pageSize") or page_size }} / Page
+        </a>
+        <div class="dropdown-menu">
+          {% for page_size_option in page_size_options %}
+          <a class="dropdown-item" href="{{ request.url.include_query_params(pageSize=page_size_option) }}">
+            {{ page_size_option }} / Page
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% include 'modals/delete.html' %}
+</div>
+{% endblock %}
