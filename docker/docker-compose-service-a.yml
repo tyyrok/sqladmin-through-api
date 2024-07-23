@@ -64,7 +64,8 @@ services:
         max-file: "5"
 
 networks:
-  service-a: {}
+  service-a:
+    driver: bridge
   gateway-network: 
     external: true
 volumes:
