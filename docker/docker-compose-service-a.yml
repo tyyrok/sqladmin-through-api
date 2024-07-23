@@ -16,8 +16,7 @@ services:
              alembic -c service_a/src/alembic.ini stamp head &&
              python service_a/src/main.py"
     networks:
-      - service-a
-      - gateway-network
+      - services
     env_file:
       - ../service_a/src/.env
     ports:
@@ -56,7 +55,7 @@ services:
     volumes:
       - apgdata-service-a:/var/lib/postgresql/data/service-a/pgdata/
     networks:
-      - service-a
+      - services
     logging:
       driver: json-file
       options:
@@ -77,8 +76,7 @@ services:
              alembic -c service_b/src/alembic.ini stamp head &&
              python service_b/src/main.py"
     networks:
-      - service-b
-      - gateway-network
+      - services
     env_file:
       - ../service_b/src/.env
     ports:
@@ -117,7 +115,7 @@ services:
     volumes:
       - apgdata-service-b:/var/lib/postgresql/data/service-b/pgdata/
     networks:
-      - service-b
+      - services
     logging:
       driver: json-file
       options:
@@ -125,11 +123,8 @@ services:
         max-file: "5"
 
 networks:
-  service-a:
+  services:
     driver: bridge
-  service-b:
-    driver: bridge
-  gateway-network: {}
 volumes:
   apgdata-service-a: {}
   apgdata-service-b: {}

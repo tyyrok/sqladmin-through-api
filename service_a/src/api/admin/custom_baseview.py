@@ -120,6 +120,7 @@ class APIBaseView(BaseView, ABC):
     details_template = "custom_details.html"
 
     use_token = True
+    """ If API isn't required authentification, set up use_token = False"""
 
     @abstractmethod
     @expose("/identity/list/", methods=["GET"], identity="identity")

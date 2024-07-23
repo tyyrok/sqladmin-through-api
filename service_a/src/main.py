@@ -21,7 +21,7 @@ app = FastAPI(
 admin = CustomAdmin(
     app,
     async_engine,
-    title="Квиз Админ Панель",
+    title="Admin Panel",
     base_url=f"/{BACKEND_ENTRYPOINT}/admin",
     templates_dir="service_a/src/templates/sqladmin",
 )

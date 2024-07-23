@@ -19,9 +19,6 @@ urls = ApiUrls(
 
 
 class BookAdmin(APIBaseView):
-    create_template = "custom_create.html"
-    list_template = "custom_list.html"
-    details_template = "custom_details.html"
     page_size = 50
     identity = "book"
     urls = urls
