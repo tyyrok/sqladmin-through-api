@@ -1,4 +1,8 @@
+from typing import Optional
+
 from pydantic import BaseModel
+
+from constants.book import BookGenre
 
 
 class BookBase(BaseModel):
@@ -9,7 +13,8 @@ class BookBase(BaseModel):
 
 
 class BookCreateDB(BookBase):
-    pass
+    genre: BookGenre
+    extra_genre: Optional[BookGenre] = None
 
 
 class BookUpdateDB(BookBase):
@@ -18,6 +23,8 @@ class BookUpdateDB(BookBase):
 
 class BookResponse(BookBase):
     id: int
+    genre: BookGenre
+    extra_genre: Optional[BookGenre] = None
 
 
 class BookPaginatedResponse(BaseModel):

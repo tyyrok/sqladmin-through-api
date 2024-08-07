@@ -24,10 +24,7 @@ class BookAdmin(APIBaseView):
     urls = urls
     name = "Book"
     icon = "fa"
-    column_list = [
-        "id",
-        "title",
-    ]
+    column_list = ["id", "title", "genre", "extra_genre"]
     column_labels = {
         "id": "id",
         "title": "Title",

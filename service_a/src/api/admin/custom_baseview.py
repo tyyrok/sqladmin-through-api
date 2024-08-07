@@ -654,6 +654,8 @@ class APIBaseView(BaseView, ABC):
         form = await request.form()
         form_data: List[Tuple[str, Union[str, UploadFile]]] = []
         for key, value in form.multi_items():
+            if value == "None":
+                continue
             if not isinstance(value, UploadFile):
                 form_data.append((key, value))
                 continue

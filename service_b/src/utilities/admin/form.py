@@ -114,6 +114,12 @@ async def get_field_validators(
                             wtforms.validators.AnyOf(values=choices)
                         )
                         field_choices = choices
+    elif REF in field_description:
+        component_name = field_description[REF].split("/")[-1]
+        choices = await get_component_choices(component_name, openapi_schema)
+        if choices:
+            validators.append(wtforms.validators.AnyOf(values=choices))
+            field_choices = choices
     if not is_optional:
         validators.append(wtforms.validators.DataRequired())
 
