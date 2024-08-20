@@ -15,6 +15,7 @@ class BookBase(BaseModel):
 class BookCreateDB(BookBase):
     genre: BookGenre
     extra_genre: Optional[BookGenre] = None
+    author_id: int
 
 
 class BookUpdateDB(BookBase):
@@ -23,6 +24,7 @@ class BookUpdateDB(BookBase):
 
 class BookResponse(BookBase):
     id: int
+    author_id: int
     genre: BookGenre
     extra_genre: Optional[BookGenre] = None
 
