@@ -19,5 +19,9 @@ class Author(Base):
         "Book", back_populates="author", cascade="all, delete-orphan"
     )
 
+    @property
+    def fullname(self) -> str:
+        return f"{self.first_name} {self.last_name}"
+
     def __repr__(self) -> str:
         return f"{self.first_name} {self.last_name}"

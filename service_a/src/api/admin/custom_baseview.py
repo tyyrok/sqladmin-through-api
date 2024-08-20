@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from copy import deepcopy
 import io
 from typing import Optional, Union, NamedTuple, Type, Any, List, Tuple
 import logging
@@ -19,6 +20,8 @@ from utilities.admin.openapi import (
     get_schema_for_form_from_api,
     get_open_api_json,
 )
+
+RELATED_OBJECTS_TITLE = ["fullname", "full_name", "name", "title"]
 
 
 class ApiUrls(NamedTuple):
@@ -173,6 +176,7 @@ class APIBaseView(BaseView, ABC):
         data = await self.get_object_for_details(
             request=request, params={f"{self.identity}_id": obj_id}
         )
+        data = await self.add_related_objects(request, data)
         context = {}
         if data is None:
             context["service_unavailable"] = True
@@ -185,8 +189,10 @@ class APIBaseView(BaseView, ABC):
                 "name_plural": self.name,
                 "column_detail_list": self.column_detail_list,
                 "column_detail_labels": self.column_detail_labels,
+                "get_url_for_details": self.url_for_details,
                 "get_url_for_delete": self.url_for_delete,
                 "get_url_for_update": self.url_for_update,
+                "request": request,
             }
         )
         request.path_params["identity"] = self.identity
@@ -551,7 +557,7 @@ class APIBaseView(BaseView, ABC):
         )
 
     async def get_object_for_details(
-        self, request: Request, params: dict
+        self, request: Request, params: dict, url: Optional[str] = None
     ) -> dict:
         """Method to get object info from third-party API
 
@@ -565,14 +571,79 @@ class APIBaseView(BaseView, ABC):
             dict: object from third-party response
         """
         token = await self.get_token(request)
-        url = await self.insert_params_to_path(
-            (self.urls.base_url + self.urls.detail_path), params
-        )
+        if not url:
+            url = await self.insert_params_to_path(
+                (self.urls.base_url + self.urls.detail_path), params
+            )
         return await self.get_data_from_api(
             url=url,
             method=RequestMethod.get,
             token=token,
         )
+
+    async def add_related_objects(self, request: Request, data: dict) -> dict:
+        """Add related object title or name with link to the main object.
+        Method finds keys in data like "related_object_id", checks whether
+        this key is located in urls of any APIBaseView child class.
+        If it's there method makes request to third-party API to get
+        "related_object" data.
+
+        Args:
+            request (Request): FastAPI request
+            data (dict): response object data received from third-party API
+
+        Returns:
+            dict: object data with related object
+        """
+        if any("_id" in key for key in data):
+            new_data = deepcopy(data)
+            for key, value in data.items():
+                if key.endswith("_id"):
+                    found_path = await self._get_url_for_related_object(key)
+                    if not found_path:
+                        continue
+                    params = {key: value}
+                    found_path = await self.insert_params_to_path(
+                        found_path, params
+                    )
+                    related_data = await self.get_object_for_details(
+                        request=request, params=params, url=found_path
+                    )
+                    if related_data:
+                        new_data.pop(key)
+                        new_data[key.removesuffix("_id")] = {
+                            "id": str(value),
+                            "value": await self._get_related_object_title(
+                                related_data
+                            ),
+                        }
+
+            data = new_data
+        return data
+
+    async def _get_url_for_related_object(self, key: str) -> Optional[str]:
+        """Method looking for the match key in ApiUrls.detail_path
+
+        Args:
+            key (str): key like "author_id"
+
+        Returns:
+            Optional[str]: Path to make request for object detail
+        """
+        children_classes = APIBaseView.__subclasses__()
+        for child_class in children_classes:
+            if key in child_class.urls.detail_path:
+                return child_class.urls.base_url + child_class.urls.detail_path
+        return None
+
+    async def _get_related_object_title(self, data: dict) -> str:
+        """Method looping through constant RELATED_OBJECTS_TITLE and
+        return the first match with response data dict
+        """
+        for elem in RELATED_OBJECTS_TITLE:
+            if elem in data:
+                return data[elem]
+        return data["id"]
 
     def url_for_details(
         self, request: Request, pk: int, identity: str
@@ -693,7 +764,7 @@ class APIBaseView(BaseView, ABC):
             if params.get(elem):
                 new_elems.append(params.get(elem))
             elif params.get(elem.strip("{}")):
-                new_elems.append(params.get(elem.strip("{}")))
+                new_elems.append(str(params.get(elem.strip("{}"))))
             else:
                 new_elems.append(elem)
         url = prefix + "://" + "/".join(new_elems)

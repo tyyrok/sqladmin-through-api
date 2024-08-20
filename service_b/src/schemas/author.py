@@ -20,6 +20,7 @@ class AuthorResponse(AuthorBase):
     id: int
     first_name: str
     last_name: str
+    fullname: str
 
 
 class AuthorPaginatedResponse(BaseModel):

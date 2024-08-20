@@ -26,7 +26,11 @@
                     {{ column_detail_labels.get(column, column) }}
                   </td>
                   <td>
-                    {{ record[column] }}
+                    {% if record[column] is mapping %}
+                      <a href="{{ get_url_for_details(request, record[column]["id"], column) }}">{{ record[column]["value"] }}</a>
+                    {% else %}
+                      {{ record[column] }}
+                    {% endif %}
                   </td>
               </tr>
             {% endfor %}
