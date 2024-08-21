@@ -6,6 +6,7 @@ from wtforms import fields as wtform_fields
 ANY_OF = "anyOf"
 TYPE = "type"
 REF = "$ref"
+FIELDS_STYLE_CLASS = "form-control"
 
 
 async def create_form(
@@ -23,10 +24,13 @@ async def create_form(
                 field_key.title(),
                 validators=field_validators,
                 choices=[(x, x) for x in choices],
+                render_kw={"class": FIELDS_STYLE_CLASS},
             )
         else:
             field_dict[field_key] = field_type(
-                field_key.title(), validators=field_validators
+                field_key.title(),
+                validators=field_validators,
+                render_kw={"class": FIELDS_STYLE_CLASS},
             )
 
     return type(form_name, (wtforms.Form,), field_dict)
