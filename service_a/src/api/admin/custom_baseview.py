@@ -20,8 +20,11 @@ from utilities.admin.openapi import (
     get_schema_for_form_from_api,
     get_open_api_json,
 )
-
-RELATED_OBJECTS_TITLE = ["fullname", "full_name", "name", "title"]
+from utilities.admin.path import (
+    insert_params_to_path,
+    get_url_for_related_object,
+)
+from utilities.admin.misc import get_related_object_title
 
 
 class ApiUrls(NamedTuple):
@@ -297,7 +300,7 @@ class APIBaseView(BaseView, ABC):
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
             token = await self.get_token(request)
-            url = await self.insert_params_to_path(
+            url = await insert_params_to_path(
                 (self.urls.base_url + self.urls.update_path),
                 {f"{identity}_id": pk},
             )
@@ -334,7 +337,7 @@ class APIBaseView(BaseView, ABC):
     async def delete(self, request: Request, pks: List[int]) -> Response:
         token = await self.get_token(request)
         for pk in pks:
-            url = await self.insert_params_to_path(
+            url = await insert_params_to_path(
                 (self.urls.base_url + self.urls.delete_path),
                 {f"{self.identity}_id": pk},
             )
@@ -572,7 +575,7 @@ class APIBaseView(BaseView, ABC):
         """
         token = await self.get_token(request)
         if not url:
-            url = await self.insert_params_to_path(
+            url = await insert_params_to_path(
                 (self.urls.base_url + self.urls.detail_path), params
             )
         return await self.get_data_from_api(
@@ -599,11 +602,13 @@ class APIBaseView(BaseView, ABC):
             new_data = deepcopy(data)
             for key, value in data.items():
                 if key.endswith("_id"):
-                    found_path = await self._get_url_for_related_object(key)
+                    found_path = await get_url_for_related_object(
+                        APIBaseView, key
+                    )
                     if not found_path:
                         continue
                     params = {key: value}
-                    found_path = await self.insert_params_to_path(
+                    found_path = await insert_params_to_path(
                         found_path, params
                     )
                     related_data = await self.get_object_for_details(
@@ -613,37 +618,13 @@ class APIBaseView(BaseView, ABC):
                         new_data.pop(key)
                         new_data[key.removesuffix("_id")] = {
                             "id": str(value),
-                            "value": await self._get_related_object_title(
+                            "value": await get_related_object_title(
                                 related_data
                             ),
                         }
 
             data = new_data
         return data
-
-    async def _get_url_for_related_object(self, key: str) -> Optional[str]:
-        """Method looking for the match key in ApiUrls.detail_path
-
-        Args:
-            key (str): key like "author_id"
-
-        Returns:
-            Optional[str]: Path to make request for object detail
-        """
-        children_classes = APIBaseView.__subclasses__()
-        for child_class in children_classes:
-            if key in child_class.urls.detail_path:
-                return child_class.urls.base_url + child_class.urls.detail_path
-        return None
-
-    async def _get_related_object_title(self, data: dict) -> str:
-        """Method looping through constant RELATED_OBJECTS_TITLE and
-        return the first match with response data dict
-        """
-        for elem in RELATED_OBJECTS_TITLE:
-            if elem in data:
-                return data[elem]
-        return data["id"]
 
     def url_for_details(
         self, request: Request, pk: int, identity: str
@@ -744,30 +725,3 @@ class APIBaseView(BaseView, ABC):
             else:
                 form_data.append((key, value))
         return FormData(form_data)
-
-    async def insert_params_to_path(self, url: str, params: dict) -> str:
-        """Method that puts params in url http://localhost/book/{book_id}/ ->
-        http://localhost/book/1/
-
-        Args:
-            url (str): url
-            params (dict): parameters that should be put in url,
-            for example {"object_id": 1}
-
-        Returns:
-            str: url
-        """
-        prefix, path = url.split("://")
-        elems = path.split("/")
-        new_elems = []
-        for elem in elems:
-            if params.get(elem):
-                new_elems.append(params.get(elem))
-            elif params.get(elem.strip("{}")):
-                new_elems.append(str(params.get(elem.strip("{}"))))
-            else:
-                new_elems.append(elem)
-        url = prefix + "://" + "/".join(new_elems)
-        if not url.endswith("/"):
-            url += "/"
-        return url
